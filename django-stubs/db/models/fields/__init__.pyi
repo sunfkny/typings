@@ -541,7 +541,7 @@ class DecimalField(Generic[_DEC], Field[Union[_DEC, Combinable], _DEC]):
         blank: bool = ...,
         null: Literal[False] = ...,
         db_index: bool = ...,
-        default: Optional[Union[_DEC, Literal[0], Callable[[], _DEC]]] = ...,
+        default: Optional[Union[_DEC, int, Callable[[], _DEC]]] = ...,
         editable: bool = ...,
         auto_created: bool = ...,
         serialize: bool = ...,
