@@ -180,7 +180,7 @@ class ForeignKey(Generic[_M], ForeignObject[_M]):
     @overload
     def __new__(
         cls,
-        to: Union[Type[_M], str],
+        to: Type[_M],
         on_delete: _OnDeleteOptions,
         to_field: Optional[str] = ...,
         related_name: Optional[str] = ...,
@@ -216,7 +216,7 @@ class ForeignKey(Generic[_M], ForeignObject[_M]):
     @overload
     def __new__(
         cls,
-        to: Union[Type[_M], str],
+        to: Type[_M],
         on_delete: _OnDeleteOptions,
         to_field: Optional[str] = ...,
         related_name: Optional[str] = ...,
@@ -249,12 +249,82 @@ class ForeignKey(Generic[_M], ForeignObject[_M]):
         validators: Iterable[_ValidatorCallable] = ...,
         error_messages: Optional[_ErrorMessagesToOverride] = ...,
     ) -> ForeignKey[Optional[_M]]: ...
+    @overload
+    def __new__(
+        cls,
+        to: str,
+        on_delete: _OnDeleteOptions,
+        to_field: Optional[str] = ...,
+        related_name: Optional[str] = ...,
+        related_query_name: Optional[str] = ...,
+        limit_choices_to: Optional[_ChoicesLimit] = ...,
+        parent_link: bool = ...,
+        db_constraint: bool = ...,
+        swappable: bool = ...,
+        verbose_name: Optional[str] = ...,
+        name: Optional[str] = ...,
+        primary_key: bool = ...,
+        max_length: Optional[int] = ...,
+        unique: bool = ...,
+        blank: bool = ...,
+        null: Literal[False] = ...,
+        db_index: bool = ...,
+        default: Optional[Union[_M, Callable[[], _M]]] = ...,
+        editable: bool = ...,
+        auto_created: bool = ...,
+        serialize: bool = ...,
+        unique_for_date: Optional[str] = ...,
+        unique_for_month: Optional[str] = ...,
+        unique_for_year: Optional[str] = ...,
+        choices: Iterable[
+            Union[Tuple[_M, str], Tuple[str, Iterable[Tuple[_M, str]]]]
+        ] = ...,
+        help_text: str = ...,
+        db_column: Optional[str] = ...,
+        db_tablespace: Optional[str] = ...,
+        validators: Iterable[_ValidatorCallable] = ...,
+        error_messages: Optional[_ErrorMessagesToOverride] = ...,
+    ) -> ForeignKey: ...
+    @overload
+    def __new__(
+        cls,
+        to: str,
+        on_delete: _OnDeleteOptions,
+        to_field: Optional[str] = ...,
+        related_name: Optional[str] = ...,
+        related_query_name: Optional[str] = ...,
+        limit_choices_to: Optional[_ChoicesLimit] = ...,
+        parent_link: bool = ...,
+        db_constraint: bool = ...,
+        swappable: bool = ...,
+        verbose_name: Optional[str] = ...,
+        name: Optional[str] = ...,
+        primary_key: bool = ...,
+        max_length: Optional[int] = ...,
+        unique: bool = ...,
+        blank: bool = ...,
+        null: Literal[True] = ...,
+        db_index: bool = ...,
+        default: Union[_M, Callable[[], _M]] = ...,
+        editable: bool = ...,
+        auto_created: bool = ...,
+        serialize: bool = ...,
+        unique_for_date: Optional[str] = ...,
+        unique_for_month: Optional[str] = ...,
+        unique_for_year: Optional[str] = ...,
+        choices: Iterable[
+            Union[Tuple[_M, str], Tuple[str, Iterable[Tuple[_M, str]]]]
+        ] = ...,
+        help_text: str = ...,
+        db_column: Optional[str] = ...,
+        db_tablespace: Optional[str] = ...,
+        validators: Iterable[_ValidatorCallable] = ...,
+        error_messages: Optional[_ErrorMessagesToOverride] = ...,
+    ) -> ForeignKey: ...
     # class access
     @overload  # type: ignore
     def __get__(self, instance: None, owner: Any) -> ForwardManyToOneDescriptor: ...
     # Model instance access
-    @overload
-    def __get__(self: ForeignKey[None], instance: Any, owner: Any) -> Any: ...
     @overload
     def __get__(self: ForeignKey[_M], instance: Any, owner: Any) -> _M: ...
     @overload
