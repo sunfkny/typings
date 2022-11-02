@@ -1,26 +1,33 @@
-import sys
-from pathlib import Path
-from typing import Any, Callable, Iterable, Optional, Type, TypeVar, Union, overload
+from typing import (
+    Any,
+    Callable,
+    Generic,
+    Iterable,
+    Literal,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    overload,
+)
 
-from django.core import validators  # due to weird mypy.stubtest error
 from django.core.files.base import File
 from django.core.files.images import ImageFile
-from django.core.files.storage import Storage
+from django.core.files.storage import FileSystemStorage, Storage
 from django.db.models.base import Model
-from django.db.models.fields import Field, _ErrorMessagesT, _FieldChoices
-from django.db.models.query_utils import DeferredAttribute
-from django.utils._os import _PathCompatible
-
-if sys.version_info < (3, 8):
-    from typing_extensions import Protocol
-else:
-    from typing import Protocol
+from django.db.models.expressions import Combinable
+from django.db.models.fields import (
+    _GT,
+    Field,
+    _ErrorMessagesToOverride,
+    _ValidatorCallable,
+)
 
 class FieldFile(File):
     instance: Model = ...
     field: FileField = ...
-    storage: Storage = ...
-    name: Optional[str]
+    storage: FileSystemStorage = ...
     def __init__(self, instance: Model, field: FileField, name: Optional[str]) -> None: ...
     file: Any = ...
     @property
@@ -34,58 +41,84 @@ class FieldFile(File):
     @property
     def closed(self) -> bool: ...
 
-class FileDescriptor(DeferredAttribute):
+class FileDescriptor:
     field: FileField = ...
+    def __init__(self, field: FileField) -> None: ...
     def __set__(self, instance: Model, value: Optional[Any]) -> None: ...
-    def __get__(
-        self, instance: Optional[Model], cls: Optional[Type[Model]] = ...
-    ) -> Union[FieldFile, FileDescriptor]: ...
+    def __get__(self, instance: Optional[Model], cls: Type[Model] = ...) -> Union[FieldFile, FileDescriptor]: ...
 
-_T = TypeVar("_T", bound="Field")
-_M = TypeVar("_M", bound=Model, contravariant=True)
+_T = TypeVar("_T", bound="Field[Any, Any]")
+_F = TypeVar("_F", bound=Optional[FieldFile])
 
-class _UploadToCallable(Protocol[_M]):
-    def __call__(self, __instance: _M, __filename: str) -> _PathCompatible: ...
-
-class FileField(Field):
-    storage: Storage = ...
-    upload_to: Union[_PathCompatible, _UploadToCallable] = ...
-    def __init__(
-        self,
+class FileField(Generic[_F], Field[Union[_F, Combinable], _F]):
+    storage: Any = ...
+    upload_to: Union[str, Callable[[Any, str], str]] = ...
+    @overload
+    def __new__(
+        cls,
         verbose_name: Optional[str] = ...,
         name: Optional[str] = ...,
-        upload_to: Union[_PathCompatible, _UploadToCallable] = ...,
+        upload_to: Union[str, Callable[[Any, str], str]] = ...,
         storage: Optional[Union[Storage, Callable[[], Storage]]] = ...,
-        *,
+        primary_key: bool = ...,
         max_length: Optional[int] = ...,
         unique: bool = ...,
         blank: bool = ...,
-        null: bool = ...,
+        null: Literal[False] = ...,
         db_index: bool = ...,
-        default: Any = ...,
+        default: Optional[Union[_GT, Callable[[], _GT]]] = ...,
         editable: bool = ...,
         auto_created: bool = ...,
         serialize: bool = ...,
         unique_for_date: Optional[str] = ...,
         unique_for_month: Optional[str] = ...,
         unique_for_year: Optional[str] = ...,
-        choices: Optional[_FieldChoices] = ...,
+        choices: Iterable[Union[Tuple[_GT, str], Tuple[str, Iterable[Tuple[_GT, str]]]]] = ...,
         help_text: str = ...,
         db_column: Optional[str] = ...,
         db_tablespace: Optional[str] = ...,
-        validators: Iterable[validators._ValidatorCallable] = ...,
-        error_messages: Optional[_ErrorMessagesT] = ...,
-    ): ...
+        validators: Iterable[_ValidatorCallable] = ...,
+        error_messages: Optional[_ErrorMessagesToOverride] = ...,
+    ) -> FileField[FieldFile]: ...
+    @overload
+    def __new__(
+        cls,
+        verbose_name: Optional[str] = ...,
+        name: Optional[str] = ...,
+        upload_to: Union[str, Callable[[Any, str], str]] = ...,
+        storage: Optional[Union[Storage, Callable[[], Storage]]] = ...,
+        primary_key: bool = ...,
+        max_length: Optional[int] = ...,
+        unique: bool = ...,
+        blank: bool = ...,
+        null: Literal[True] = ...,
+        db_index: bool = ...,
+        default: Optional[Union[_GT, Callable[[], _GT]]] = ...,
+        editable: bool = ...,
+        auto_created: bool = ...,
+        serialize: bool = ...,
+        unique_for_date: Optional[str] = ...,
+        unique_for_month: Optional[str] = ...,
+        unique_for_year: Optional[str] = ...,
+        choices: Iterable[Union[Tuple[_GT, str], Tuple[str, Iterable[Tuple[_GT, str]]]]] = ...,
+        help_text: str = ...,
+        db_column: Optional[str] = ...,
+        db_tablespace: Optional[str] = ...,
+        validators: Iterable[_ValidatorCallable] = ...,
+        error_messages: Optional[_ErrorMessagesToOverride] = ...,
+    ) -> FileField[Optional[FieldFile]]: ...
     # class access
     @overload  # type: ignore
-    def __get__(self, instance: None, owner) -> FileDescriptor: ...
+    def __get__(self, instance: None, owner: Any) -> FileDescriptor: ...
     # Model instance access
     @overload
-    def __get__(self, instance: Model, owner) -> Any: ...
+    def __get__(self, instance: FileField[FieldFile], owner: Any) -> FieldFile: ...
+    @overload
+    def __get__(self, instance: FileField[Optional[FieldFile]], owner: Any) -> Optional[FieldFile]: ...
     # non-Model instances
     @overload
-    def __get__(self: _T, instance, owner) -> _T: ...
-    def generate_filename(self, instance: Optional[Model], filename: _PathCompatible) -> str: ...
+    def __get__(self: _T, instance: Any, owner: Any) -> _T: ...
+    def generate_filename(self, instance: Optional[Model], filename: str) -> str: ...
 
 class ImageFileDescriptor(FileDescriptor):
     field: ImageField
@@ -95,22 +128,76 @@ class ImageFieldFile(ImageFile, FieldFile):
     field: ImageField
     def delete(self, save: bool = ...) -> None: ...
 
-class ImageField(FileField):
-    def __init__(
-        self,
+_I = TypeVar("_I", bound=Optional[ImageFieldFile])
+
+class ImageField(Generic[_I], Field[Union[_I, Combinable], _I]):
+    @overload
+    def __new__(
+        cls,
         verbose_name: Optional[str] = ...,
         name: Optional[str] = ...,
         width_field: Optional[str] = ...,
         height_field: Optional[str] = ...,
-        **kwargs: Any,
-    ) -> None: ...
+        upload_to: Union[str, Callable[[Model, str], Any]] = ...,
+        storage: Optional[Union[Storage, Callable[[], Storage]]] = ...,
+        primary_key: bool = ...,
+        max_length: Optional[int] = ...,
+        unique: bool = ...,
+        blank: bool = ...,
+        null: Literal[False] = ...,
+        db_index: bool = ...,
+        default: Optional[Union[_I, Callable[[], _I]]] = ...,
+        editable: bool = ...,
+        auto_created: bool = ...,
+        serialize: bool = ...,
+        unique_for_date: Optional[str] = ...,
+        unique_for_month: Optional[str] = ...,
+        unique_for_year: Optional[str] = ...,
+        choices: Iterable[Union[Tuple[_I, str], Tuple[str, Iterable[Tuple[_I, str]]]]] = ...,
+        help_text: str = ...,
+        db_column: Optional[str] = ...,
+        db_tablespace: Optional[str] = ...,
+        validators: Iterable[_ValidatorCallable] = ...,
+        error_messages: Optional[_ErrorMessagesToOverride] = ...,
+    ) -> ImageField[ImageFieldFile]: ...
+    @overload
+    def __new__(
+        cls,
+        verbose_name: Optional[str] = ...,
+        name: Optional[str] = ...,
+        width_field: Optional[str] = ...,
+        height_field: Optional[str] = ...,
+        upload_to: Union[str, Callable[[Model, str], Any]] = ...,
+        storage: Optional[Union[Storage, Callable[[], Storage]]] = ...,
+        primary_key: bool = ...,
+        max_length: Optional[int] = ...,
+        unique: bool = ...,
+        blank: bool = ...,
+        null: Literal[True] = ...,
+        db_index: bool = ...,
+        default: Optional[Union[_I, Callable[[], _I]]] = ...,
+        editable: bool = ...,
+        auto_created: bool = ...,
+        serialize: bool = ...,
+        unique_for_date: Optional[str] = ...,
+        unique_for_month: Optional[str] = ...,
+        unique_for_year: Optional[str] = ...,
+        choices: Iterable[Union[Tuple[_I, str], Tuple[str, Iterable[Tuple[_I, str]]]]] = ...,
+        help_text: str = ...,
+        db_column: Optional[str] = ...,
+        db_tablespace: Optional[str] = ...,
+        validators: Iterable[_ValidatorCallable] = ...,
+        error_messages: Optional[_ErrorMessagesToOverride] = ...,
+    ) -> ImageField[Optional[ImageFieldFile]]: ...
     # class access
     @overload  # type: ignore
-    def __get__(self, instance: None, owner) -> ImageFileDescriptor: ...
-    # Model instance access
+    def __get__(self, instance: None, owner: Any) -> ImageFileDescriptor: ...
+    # # Model instance access
     @overload
-    def __get__(self, instance: Model, owner) -> Any: ...
+    def __get__(self: ImageField[Optional[ImageFieldFile]], instance: Any, owner: Any) -> Optional[ImageFieldFile]: ...
+    @overload
+    def __get__(self: ImageField[ImageFieldFile], instance: Any, owner: Any) -> ImageFieldFile: ...
     # non-Model instances
     @overload
-    def __get__(self: _T, instance, owner) -> _T: ...
+    def __get__(self: _T, instance: Any, owner: Any) -> _T: ...
     def update_dimension_fields(self, instance: Model, force: bool = ..., *args: Any, **kwargs: Any) -> None: ...
