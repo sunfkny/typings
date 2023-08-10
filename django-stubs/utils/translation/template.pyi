@@ -1,4 +1,6 @@
-from typing import Pattern
+from re import Pattern
+
+TRANSLATOR_COMMENT_MARK: str
 
 dot_re: Pattern[str]
 
@@ -11,4 +13,4 @@ endblock_re: Pattern[str]
 plural_re: Pattern[str]
 constant_re: Pattern[str]
 
-def templatize(src: str, origin: str = ...) -> str: ...
+def templatize(src: str, origin: str | None = ...) -> str: ...

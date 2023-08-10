@@ -1,16 +1,15 @@
 from datetime import date
-from typing import Any, Dict, Optional
 
-TIME_STRINGS: Dict[str, str]
-TIMESINCE_CHUNKS: Any
+TIME_STRINGS: dict[str, str]
+TIME_STRINGS_KEYS: list[str]
+TIME_CHUNKS: list[int]
+MONTHS_DAYS: tuple[int, ...]
 
 def timesince(
     d: date,
-    now: Optional[date] = ...,
+    now: date | None = ...,
     reversed: bool = ...,
-    time_strings: Optional[Dict[str, str]] = ...,
+    time_strings: dict[str, str] | None = ...,
     depth: int = ...,
 ) -> str: ...
-def timeuntil(
-    d: date, now: Optional[date] = ..., time_strings: Optional[Dict[str, str]] = ..., depth: int = ...
-) -> str: ...
+def timeuntil(d: date, now: date | None = ..., time_strings: dict[str, str] | None = ..., depth: int = ...) -> str: ...
